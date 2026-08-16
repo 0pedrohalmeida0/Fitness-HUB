@@ -50,14 +50,14 @@ function setButtonLoading(btn, isLoading) {
 async function checkAuth() {
   const token = localStorage.getItem('fh_access_token');
   if (!token) {
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
     return null;
   }
   try {
     const me = await authApi.me();
     return me;
   } catch (e) {
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
     return null;
   }
 }

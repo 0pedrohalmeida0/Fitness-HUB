@@ -40,7 +40,7 @@ async function apiFetch(path, options = {}) {
       response = await fetch(url, config);
     } else {
       // Refresh falhou — manda pro login
-      window.location.href = '/login.html';
+      window.location.href = 'login.html';
       return;
     }
   }
@@ -125,6 +125,6 @@ const authApi = {
     localStorage.removeItem('fh_access_token');
     localStorage.removeItem('fh_refresh_token');
     localStorage.removeItem('fh_token_type');
-    window.location.href = '/login.html';
+    window.location.href = 'login.html';
   },
 };

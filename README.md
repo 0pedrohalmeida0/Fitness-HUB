@@ -6,21 +6,20 @@
 
 ## Status
 
-🚧 **MVP em desenvolvimento** — Fase 1: Auth (cadastro e login)
+🚧 **MVP em desenvolvimento**
 
-### O que já tem
+### Implementado
 
 - ✅ Schema do banco (PostgreSQL/Neon) — 9 tabelas
 - ✅ Identidade visual (logo, paleta, tipografia)
 - ✅ Telas de Login e Cadastro (HTML/CSS/JS)
 - ✅ Backend de autenticação (FastAPI + JWT + bcrypt)
-- ✅ Testes do fluxo de auth
+- ✅ Módulo Dieta (catálogo + log diário + admin approval)
 
 ### Próximos passos
 
 - [ ] Home (perfil + grid de posts)
 - [ ] Feed (timeline + likes + comentários)
-- [ ] Dieta (registro diário + planos alimentares)
 - [ ] App Flutter (mobile)
 - [ ] Deploy (Neon + Railway/Render + Play Store)
 
@@ -28,32 +27,56 @@
 
 ```
 fitness-hub/
-├── frontend/          Site web (HTML/CSS/JS) — Login, Cadastro
-├── backend/           API Python (FastAPI)
-└── docs/              Documentação e brand
+├── frontend/          Site web (HTML/CSS/JS)
+│   ├── login.html
+│   ├── register.html
+│   ├── dieta.html
+│   ├── css/
+│   └── js/
+└── backend/           API Python (FastAPI)
+    ├── app/
+    ├── alembic/
+    ├── tests/
+    ├── requirements.txt
+    ├── .env.example
+    ├── alembic.ini
+    ├── pytest.ini
+    ├── Dockerfile
+    └── docker-compose.yml
 ```
 
-### Frontend (`/frontend`)
+## Módulos do backend
 
-Site web responsivo com as telas de login e cadastro.
+| Módulo     | Rotas                                       | Status |
+|------------|---------------------------------------------|--------|
+| Auth       | `/auth/*`                                   | ✅      |
+| Alimentos  | `/alimentos/*`                              | ✅      |
+| Alimentação| `/alimentacao/*`                            | ✅      |
+| Posts      | `/posts/*`                                  | ⏳      |
+| Follows    | `/follows/*`                                | ⏳      |
+| Likes      | `/posts/{id}/like`                          | ⏳      |
+| Comentários| `/posts/{id}/comments`                      | ⏳      |
+| Meal Plans | `/meal-plans/*`                             | ⏳      |
 
-```bash
-# Abrir direto no navegador
-open frontend/login.html
-```
+## Frontend
 
-Tecnologias: HTML5 semântico · CSS moderno (variáveis, flexbox, grid) · JS vanilla (Fetch API).
+Pura HTML/CSS/JS (vanilla). Sem build step.
 
-Para conectar com o backend, ajuste `API_BASE_URL` em `frontend/js/auth.js`.
+- `login.html` / `register.html` — autenticação
+- `dieta.html` — módulo Dieta (catálogo + log diário + submeter alimento)
 
-### Backend (`/backend`)
+Pra rodar: abra os HTMLs direto no navegador, ou sirva com qualquer static server (`python -m http.server`, `npx serve`, etc).
 
-API REST em FastAPI com SQLAlchemy async + Neon PostgreSQL.
+Pra conectar com backend, ajuste `API_BASE_URL` em `frontend/js/api.js`.
+
+## Backend
+
+FastAPI + SQLAlchemy async + Neon.
 
 ```bash
 cd backend
 cp .env.example .env
-# Edite DATABASE_URL com a connection string do Neon
+# Editar DATABASE_URL com connection string do Neon
 
 # Docker (recomendado)
 docker-compose up --build
@@ -66,48 +89,31 @@ uvicorn app.main:app --reload
 
 API: `http://localhost:8000` · Docs: `http://localhost:8000/docs`
 
-**Endpoints do MVP:**
+## Endpoints do MVP
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `POST` | `/auth/register` | Criar conta |
-| `POST` | `/auth/login` | Login (email ou username) |
-| `POST` | `/auth/refresh` | Renovar token |
-| `GET` | `/auth/me` | Usuário logado |
-| `GET` | `/health` | Liveness check |
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| `POST` | `/auth/register` | Criar conta | - |
+| `POST` | `/auth/login` | Login (email ou username) | - |
+| `POST` | `/auth/refresh` | Renovar token | - |
+| `GET` | `/auth/me` | Usuário logado | ✅ |
+| `GET` | `/alimentos` | Listar aprovados (com busca) | - |
+| `POST` | `/alimentos` | Criar (vai pra pending) | ✅ |
+| `GET` | `/alimentos/pending` | Pendentes (admin only) | ✅ |
+| `PATCH` | `/alimentos/{id}/approve` | Aprovar (admin only) | ✅ |
+| `PATCH` | `/alimentos/{id}/reject` | Rejeitar (admin only) | ✅ |
+| `POST` | `/alimentacao` | Registrar consumo | ✅ |
+| `GET` | `/alimentacao?data=YYYY-MM-DD` | Lista do dia | ✅ |
+| `GET` | `/alimentacao/resumo?data=YYYY-MM-DD` | Resumo nutricional | ✅ |
+| `DELETE` | `/alimentacao/{id}` | Remover (soft delete) | ✅ |
+| `GET` | `/health` | Liveness check | - |
+| `GET` | `/ready` | Readiness (testa DB) | - |
 
 ## Banco de dados
 
 Schema em PostgreSQL com 9 tabelas: `usuarios`, `alimentos`, `meal_plans`, `meal_plan_items`, `alimentacao`, `post_media`, `follows`, `likes`, `comentarios`.
 
-Inclui:
-- Status de aprovação de alimentos (admin modera)
-- Soft delete em posts e comentários
-- Likes múltiplos por user (diferencial do app)
-- Follow com status (pending/accepted/blocked) pra perfis privados
-
-Aplicar no Neon: rode o SQL no painel ou use `alembic upgrade head` (depois de gerar a primeira migration com `alembic revision --autogenerate`).
-
-## Identidade visual
-
-- **Tagline:** Conecte-se. Treine. Evolua.
-- **Cores:** Lime (#A3E635) + Violet (#7C3AED) sobre Ink (#0A0A0A)
-- **Tipografia:** Outfit (UI) + JetBrains Mono (números)
-- **Logo:** símbolo de rede formando a letra F
-
-## Segurança
-
-- Senhas com **bcrypt** (12 rounds, hash, nunca plain)
-- **JWT** com access (1h) + refresh (7d)
-- Validação rigorosa com Pydantic
-- Mensagens genéricas no login (não vaza se user existe)
-- CORS configurável por env
-
-⚠️ **Em produção:**
-- Trocar `JWT_SECRET` por uma chave aleatória (32+ chars): `openssl rand -hex 32`
-- Mover tokens de `localStorage` pra cookies httpOnly
-- Adicionar rate limit nos endpoints de auth
-- Habilitar HTTPS obrigatório
+Fluxo do Alimento: user cria → status='pending' → admin aprova → status='approved' → outros users podem usar no log.
 
 ## Testes
 
@@ -116,8 +122,22 @@ cd backend
 pytest
 ```
 
-Cobre 14 cenários do fluxo de auth (registro, login, /me, health, erros 401/409/422).
+27 cenários cobrindo auth (14) + dieta (13).
+
+## Segurança
+
+- Senhas com **bcrypt** (12 rounds)
+- **JWT** com access (1h) + refresh (7d)
+- Validação rigorosa com Pydantic
+- Mensagens genéricas no login
+- CORS configurável
+- Soft delete em alimentacao, post_media, comentarios
+
+⚠️ **Em produção:**
+- Trocar `JWT_SECRET` por uma chave aleatória (32+ chars): `openssl rand -hex 32`
+- Mover tokens de `localStorage` pra cookies httpOnly
+- Habilitar HTTPS obrigatório
 
 ---
 
-© 2026 Fitness Hub · Construído por [Pedro Almeida](https://github.com/0pedrohalmeida0)
+© 2026 Fitness Hub

@@ -22,14 +22,19 @@ class Base(DeclarativeBase):
 
 
 # Engine com pool pequeno (Neon é serverless, conexões são caras)
-engine = create_async_engine(
-    settings.database_url,
-    echo=settings.app_debug,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,  # verifica conexão antes de usar
-    pool_recycle=300,    # recicla conexões a cada 5min
-)
+# SQLite (usado em testes) não aceita esses args — detectamos pelo driver
+_is_sqlite = settings.database_url.startswith("sqlite")
+
+_engine_kwargs = {"echo": settings.app_debug}
+if not _is_sqlite:
+    _engine_kwargs.update(
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,  # verifica conexão antes de usar
+        pool_recycle=300,    # recicla conexões a cada 5min
+    )
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs)
 
 # Factory de sessões
 AsyncSessionLocal = async_sessionmaker(

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dieta — Fitness Hub</title>
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/dieta.css">
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="/dieta.html" class="topbar-logo">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/>
+          <circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/>
+          <circle cx="12" cy="12" r="2.2"/>
+          <line x1="6" y1="6" x2="12" y2="12"/><line x1="18" y1="6" x2="12" y2="12"/>
+          <line x1="6" y1="18" x2="12" y2="12"/><line x1="18" y1="18" x2="12" y2="12"/>
+        </svg>
+      </div>
+      <span class="name">Fitness Hub</span>
+    </a>
+
+    <nav class="topbar-links" aria-label="Navegação principal">
+      <a href="#" id="user-name" style="color:#71717A;font-weight:500;"></a>
+      <a href="#" id="logout-link">Sair</a>
+    </nav>
+  </header>
+
+  <main class="dieta-main">
+    <!-- Cabeçalho da página -->
+    <div class="dieta-head">
+      <div>
+        <h1>Dieta</h1>
+        <p>Registre sua alimentação, monte seu catálogo de alimentos e acompanhe seus macros.</p>
+      </div>
+      <div class="date-picker">
+        <label for="data-selecionada">Data</label>
+        <input type="date" id="data-selecionada" />
+      </div>
+    </div>
+
+    <!-- Resumo do dia -->
+    <div class="resumo-card">
+      <h2>Resumo do dia</h2>
+      <div class="resumo-grid" id="resumo-grid">
+        <div class="resumo-stat">
+          <div class="stat-value" id="stat-kcal">0</div>
+          <div class="stat-label">kcal</div>
+        </div>
+        <div class="resumo-stat">
+          <div class="stat-value" id="stat-protein">0</div>
+          <div class="stat-label">proteína (g)</div>
+        </div>
+        <div class="resumo-stat">
+          <div class="stat-value" id="stat-carbo">0</div>
+          <div class="stat-label">carbo (g)</div>
+        </div>
+        <div class="resumo-stat">
+          <div class="stat-value" id="stat-fibras">0</div>
+          <div class="stat-label">fibras (g)</div>
+        </div>
+        <div class="resumo-stat">
+          <div class="stat-value" id="stat-gramas">0</div>
+          <div class="stat-label">total (g)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="diario">Meu Diário</button>
+      <button class="tab" data-tab="catalogo">Catálogo</button>
+      <button class="tab" data-tab="adicionar">Adicionar Alimento</button>
+    </div>
+
+    <!-- Tab: Diário -->
+    <section class="tab-content active" id="tab-diario">
+      <div class="diario-header">
+        <h2 id="diario-titulo">Registros do dia</h2>
+        <button class="btn btn-primary" id="btn-abrir-add-consumo">+ Adicionar consumo</button>
+      </div>
+      <div id="diario-lista" class="diario-lista">
+        <p class="empty-state">Carregando...</p>
+      </div>
+    </section>
+
+    <!-- Tab: Catálogo -->
+    <section class="tab-content" id="tab-catalogo">
+      <div class="catalogo-header">
+        <h2>Catálogo de alimentos</h2>
+        <input type="search" id="catalogo-search" placeholder="Buscar por nome..." />
+      </div>
+      <div id="catalogo-lista" class="catalogo-lista">
+        <p class="empty-state">Carregando...</p>
+      </div>
+    </section>
+
+    <!-- Tab: Adicionar Alimento -->
+    <section class="tab-content" id="tab-adicionar">
+      <h2>Sugerir novo alimento</h2>
+      <p class="muted">Seus alimentos enviados ficam em análise. Admin aprova antes de liberar pra todo mundo.</p>
+
+      <div id="add-error" class="form-error" hidden></div>
+
+      <form id="form-add-alimento" class="form">
+        <div class="field">
+          <label for="alimento-nome">Nome do alimento *</label>
+          <div class="field-input">
+            <input type="text" id="alimento-nome" placeholder="Ex: Frango grelhado" required minlength="2" maxlength="255" />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="alimento-calorias">Calorias (kcal/100g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-calorias" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="alimento-porcao">Porção base (g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-porcao" min="1" step="1" value="100" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="field">
+            <label for="alimento-proteina">Proteína (g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-proteina" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="alimento-carbo">Carbo (g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-carbo" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="alimento-acucares">Açúcares (g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-acucares" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="alimento-fibras">Fibras (g)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-fibras" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="alimento-sodio">Sódio (mg)</label>
+            <div class="field-input">
+              <input type="number" id="alimento-sodio" min="0" step="0.1" value="0" />
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-secondary">
+          <span class="btn-label">Enviar para análise</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Modal: Adicionar consumo -->
+  <div class="modal" id="modal-consumo" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Adicionar consumo</h3>
+        <button class="modal-close" data-close-modal aria-label="Fechar">×</button>
+      </div>
+
+      <div id="consumo-error" class="form-error" hidden></div>
+
+      <form id="form-consumo" class="form">
+        <div class="field">
+          <label for="consumo-busca">Buscar alimento</label>
+          <div class="field-input">
+            <input type="search" id="consumo-busca" placeholder="Comece a digitar..." autocomplete="off" />
+          </div>
+          <div id="consumo-sugestoes" class="sugestoes" hidden></div>
+          <input type="hidden" id="consumo-alimento-id" />
+          <div id="consumo-alimento-nome" class="alimento-selecionado" hidden></div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field">
+            <label for="consumo-quantidade">Quantidade (g)</label>
+            <div class="field-input">
+              <input type="number" id="consumo-quantidade" min="1" step="1" value="100" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="consumo-refeicao">Refeição</label>
+            <div class="field-input">
+              <select id="consumo-refeicao" required>
+                <option value="cafe_manha">Café da manhã</option>
+                <option value="lanche_manha">Lanche da manhã</option>
+                <option value="almoco" selected>Almoço</option>
+                <option value="lanche_tarde">Lanche da tarde</option>
+                <option value="jantar">Jantar</option>
+                <option value="ceia">Ceia</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          <span class="btn-label">Adicionar ao diário</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <footer class="webpage-foot">
+    <a href="#">Termos</a> · <a href="#">Privacidade</a> · <a href="#">Suporte</a>
+    <div class="copyright">© 2026 Fitness Hub</div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/dieta.js"></script>
+</body>
+</html>

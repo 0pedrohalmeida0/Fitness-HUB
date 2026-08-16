@@ -5,6 +5,7 @@ Pydantic v2 com validação rigorosa.
 """
 
 import re
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -102,4 +103,4 @@ class UserPublic(BaseModel):
     foto_url_s3: str | None = None
     is_private: bool
     is_admin: bool
-    created_at: datetime | None = None  # type: ignore[name-defined]
+    created_at: datetime | None = None

@@ -6,6 +6,11 @@ para os testes. Em produção, idealmente usaria um PostgreSQL
 de teste real.
 """
 
+# IMPORTANTE: seta env vars ANTES de importar app
+import os
+os.environ.setdefault("JWT_SECRET", "test-secret-with-at-least-32-characters-long-12345")
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
 import asyncio
 from typing import AsyncGenerator
 

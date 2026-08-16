@@ -9,14 +9,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from app import __version__
 from app.core.config import settings
-from app.routers import auth, health
+from app.routers import alimentacao, alimentos, auth, health
 
 
 @asynccontextmanager
@@ -48,8 +47,11 @@ app.add_middleware(
 )
 
 # ----- Rate Limiting -----
-app.state.limiter = _rate_limit_exceeded_handler  # placeholder
-app.add_middleware(SlowAPIMiddleware)
+# Limiter configurado mas ainda sem decorators aplicados nas rotas.
+# Pra ativar: @limiter.limit("5/minute") em endpoints sensíveis (auth).
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # ----- Exception handlers -----
@@ -66,6 +68,8 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # ----- Routers -----
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(alimentos.router)
+app.include_router(alimentacao.router)
 
 
 # ----- Root -----

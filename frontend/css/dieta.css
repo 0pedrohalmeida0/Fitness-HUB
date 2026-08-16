@@ -1,0 +1,425 @@
+/* ============================================================
+   Fitness Hub — Dieta page styles
+   ============================================================ */
+
+/* ----- Layout principal ----- */
+.dieta-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  flex: 1;
+  width: 100%;
+}
+
+.dieta-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.dieta-head h1 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #18181B;
+  margin-bottom: 4px;
+}
+
+.dieta-head p {
+  color: #71717A;
+  font-size: 15px;
+}
+
+.date-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-picker label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #52525B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.date-picker input {
+  padding: 8px 12px;
+  border: 1px solid #D4D4D8;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #18181B;
+  background: #fff;
+}
+
+/* ----- Resumo do dia ----- */
+.resumo-card {
+  background: linear-gradient(135deg, #A3E635 0%, #84CC16 100%);
+  color: #18181B;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(163, 230, 53, 0.2);
+}
+
+.resumo-card h2 {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.resumo-stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 6px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+/* ----- Tabs ----- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #E4E4E7;
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 12px 20px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #71717A;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover { color: #18181B; }
+
+.tab.active {
+  color: #18181B;
+  border-bottom-color: #7C3AED;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ----- Diário ----- */
+.diario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.diario-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #18181B;
+}
+
+.diario-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.registro {
+  background: #fff;
+  border: 1px solid #E4E4E7;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.registro-refeicao {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #7C3AED;
+  background: rgba(124, 58, 237, 0.08);
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.registro-info h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #18181B;
+  margin-bottom: 2px;
+}
+
+.registro-info p {
+  font-size: 13px;
+  color: #71717A;
+  font-variant-numeric: tabular-nums;
+}
+
+.registro-info b { color: #18181B; font-weight: 600; }
+
+.registro-delete {
+  background: transparent;
+  border: 0;
+  color: #A1A1AA;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.registro-delete:hover {
+  color: #DC2626;
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.registro-delete svg { width: 18px; height: 18px; }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #A1A1AA;
+  font-size: 14px;
+}
+
+/* ----- Catálogo ----- */
+.catalogo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.catalogo-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #18181B;
+}
+
+.catalogo-header input {
+  padding: 10px 14px;
+  border: 1px solid #D4D4D8;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  min-width: 280px;
+}
+
+.catalogo-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.alimento-card {
+  background: #fff;
+  border: 1px solid #E4E4E7;
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color 0.15s, transform 0.05s;
+}
+
+.alimento-card:hover {
+  border-color: #A1A1AA;
+}
+
+.alimento-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #18181B;
+  margin-bottom: 8px;
+}
+
+.alimento-macros {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #71717A;
+  font-variant-numeric: tabular-nums;
+}
+
+.alimento-macros b { color: #18181B; }
+
+/* ----- Form (add alimento) ----- */
+.muted {
+  color: #71717A;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+select {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  padding: 11px 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: #18181B;
+  cursor: pointer;
+}
+
+/* ----- Modal ----- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal[hidden] { display: none; }
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-head h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #18181B;
+}
+
+.modal-close {
+  background: transparent;
+  border: 0;
+  font-size: 28px;
+  line-height: 1;
+  color: #71717A;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.modal-close:hover { color: #18181B; }
+
+.sugestoes {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #D4D4D8;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 4px;
+}
+
+.sugestoes[hidden] { display: none; }
+
+.sugestao-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #18181B;
+  border-bottom: 1px solid #F4F4F5;
+}
+
+.sugestao-item:last-child { border-bottom: 0; }
+
+.sugestao-item:hover {
+  background: #F4F4F5;
+}
+
+.alimento-selecionado {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid #7C3AED;
+  border-radius: 6px;
+  color: #7C3AED;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.alimento-selecionado[hidden] { display: none; }
+
+/* ----- Responsive ----- */
+@media (max-width: 768px) {
+  .resumo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid-3, .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .dieta-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

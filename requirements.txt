@@ -1,0 +1,33 @@
+# ============================================================
+# Fitness Hub - Backend
+# Python 3.11+ · FastAPI · SQLAlchemy async · Neon PostgreSQL
+# ============================================================
+
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+
+# Validação e settings
+pydantic==2.9.2
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# Banco de dados (async, sem psycopg2)
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# Auth
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0
+
+# CORS, rate limit, utils
+slowapi==0.1.9
+python-multipart==0.0.18
+httpx==0.28.0
+
+# Testes
+pytest==8.3.3
+pytest-asyncio==0.24.0
+aiosqlite==0.20.0

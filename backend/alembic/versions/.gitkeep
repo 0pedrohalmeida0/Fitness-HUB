@@ -1,0 +1,2 @@
+# As migrations geradas pelo Alembic ficam aqui.
+# Para criar: `alembic revision --autogenerate -m "mensagem"`

@@ -1,136 +1,123 @@
-# Fitness Hub — Backend
+# Fitness Hub
+
+> Rede social fitness com diário alimentar, planos de dieta e feed social.
+
+**Stack:** Flutter (mobile) · HTML/CSS/JS (site) · Python FastAPI (backend) · PostgreSQL/Neon · AWS S3
+
+## Status
+
+🚧 **MVP em desenvolvimento** — Fase 1: Auth (cadastro e login)
+
+### O que já tem
+
+- ✅ Schema do banco (PostgreSQL/Neon) — 9 tabelas
+- ✅ Identidade visual (logo, paleta, tipografia)
+- ✅ Telas de Login e Cadastro (HTML/CSS/JS)
+- ✅ Backend de autenticação (FastAPI + JWT + bcrypt)
+- ✅ Testes do fluxo de auth
+
+### Próximos passos
+
+- [ ] Home (perfil + grid de posts)
+- [ ] Feed (timeline + likes + comentários)
+- [ ] Dieta (registro diário + planos alimentares)
+- [ ] App Flutter (mobile)
+- [ ] Deploy (Neon + Railway/Render + Play Store)
+
+## Estrutura do monorepo
+
+```
+fitness-hub/
+├── frontend/          Site web (HTML/CSS/JS) — Login, Cadastro
+├── backend/           API Python (FastAPI)
+└── docs/              Documentação e brand
+```
+
+### Frontend (`/frontend`)
+
+Site web responsivo com as telas de login e cadastro.
+
+```bash
+# Abrir direto no navegador
+open frontend/login.html
+```
+
+Tecnologias: HTML5 semântico · CSS moderno (variáveis, flexbox, grid) · JS vanilla (Fetch API).
+
+Para conectar com o backend, ajuste `API_BASE_URL` em `frontend/js/auth.js`.
+
+### Backend (`/backend`)
 
 API REST em FastAPI com SQLAlchemy async + Neon PostgreSQL.
 
-## Stack
-
-- **Python 3.11+**
-- **FastAPI** — web framework
-- **SQLAlchemy 2.0 async** + **asyncpg** — ORM async
-- **Pydantic v2** — validação
-- **passlib[bcrypt]** — hash de senha
-- **python-jose** — JWT
-- **Alembic** — migrations
-- **slowapi** — rate limiting
-- **Neon** — PostgreSQL serverless (produção)
-
-## Estrutura
-
-```
-backend/
-├── app/
-│   ├── core/           # config, db, security, dependencies
-│   ├── models/         # SQLAlchemy models
-│   ├── schemas/        # Pydantic schemas
-│   ├── routers/        # endpoints HTTP
-│   ├── services/       # lógica de negócio
-│   └── main.py         # app FastAPI
-├── alembic/            # migrations
-├── tests/              # testes pytest
-├── requirements.txt
-├── .env.example
-├── Dockerfile
-└── docker-compose.yml
-```
-
-## Setup local
-
-### Opção 1: Docker (recomendado)
-
 ```bash
 cd backend
 cp .env.example .env
+# Edite DATABASE_URL com a connection string do Neon
+
+# Docker (recomendado)
 docker-compose up --build
-```
 
-A API fica em `http://localhost:8000`.
-Docs interativas em `http://localhost:8000/docs`.
-
-### Opção 2: Local sem Docker
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou: venv\Scripts\activate  # Windows
-
+# Ou local
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-# Edite o .env com a DATABASE_URL do Neon (ou use Postgres local)
-
 uvicorn app.main:app --reload
 ```
 
-## Endpoints disponíveis (MVP auth)
+API: `http://localhost:8000` · Docs: `http://localhost:8000/docs`
 
-| Método | Rota          | Descrição                       | Auth |
-|--------|---------------|---------------------------------|------|
-| POST   | `/auth/register` | Criar conta nova              | -    |
-| POST   | `/auth/login`    | Login (email ou username)     | -    |
-| POST   | `/auth/refresh`  | Renovar access token          | -    |
-| GET    | `/auth/me`       | Dados do usuário logado       | ✅   |
-| POST   | `/auth/logout`   | Logout (stateless)            | -    |
-| GET    | `/health`        | Liveness check                | -    |
-| GET    | `/ready`         | Readiness check (com DB)      | -    |
-| GET    | `/`              | Info da API                    | -    |
-| GET    | `/docs`          | Swagger UI                     | -    |
+**Endpoints do MVP:**
 
-## Banco de dados (Neon)
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/auth/register` | Criar conta |
+| `POST` | `/auth/login` | Login (email ou username) |
+| `POST` | `/auth/refresh` | Renovar token |
+| `GET` | `/auth/me` | Usuário logado |
+| `GET` | `/health` | Liveness check |
 
-1. Crie um projeto no [Neon](https://neon.tech)
-2. Pegue a connection string (com pooling)
-3. Cole no `.env`:
-   ```
-   DATABASE_URL=postgresql+asyncpg://user:pass@ep-xxx.sa-east-1.aws.neon.tech/fitnesshub?ssl=require
-   ```
-4. Aplique o schema (uma das duas opções):
-   - **Manualmente**: rode o `schema.sql` no painel SQL do Neon
-   - **Com Alembic**: `alembic upgrade head` (depois de gerar a primeira migration)
+## Banco de dados
 
-### Gerar a primeira migration
+Schema em PostgreSQL com 9 tabelas: `usuarios`, `alimentos`, `meal_plans`, `meal_plan_items`, `alimentacao`, `post_media`, `follows`, `likes`, `comentarios`.
 
-```bash
-alembic revision --autogenerate -m "initial schema"
-alembic upgrade head
-```
+Inclui:
+- Status de aprovação de alimentos (admin modera)
+- Soft delete em posts e comentários
+- Likes múltiplos por user (diferencial do app)
+- Follow com status (pending/accepted/blocked) pra perfis privados
 
-## Segurança implementada
+Aplicar no Neon: rode o SQL no painel ou use `alembic upgrade head` (depois de gerar a primeira migration com `alembic revision --autogenerate`).
 
-✅ Senha com bcrypt (12 rounds) — nunca plain
-✅ JWT com access (1h) + refresh (7d)
-✅ Validação rigorosa com Pydantic (regex, min/max, EmailStr)
-✅ Mensagens genéricas no login (não vaza se user existe)
-✅ CORS configurável via env
-✅ Rate limiting via slowapi
-✅ Tokens via HTTPBearer (Authorization: Bearer ...)
+## Identidade visual
 
-## Próximos passos
+- **Tagline:** Conecte-se. Treine. Evolua.
+- **Cores:** Lime (#A3E635) + Violet (#7C3AED) sobre Ink (#0A0A0A)
+- **Tipografia:** Outfit (UI) + JetBrains Mono (números)
+- **Logo:** símbolo de rede formando a letra F
 
-Os models/endpoints abaixo já estão mapeados no plano, mas ainda não foram implementados:
+## Segurança
 
-- [ ] `users` (PATCH /users/me, GET /users/{username})
-- [ ] `follows` (POST/DELETE/PATCH /follows/{user_id})
-- [ ] `posts` (POST/GET/DELETE /posts, GET /feed)
-- [ ] `likes` (POST /posts/{id}/like — múltiplos permitidos)
-- [ ] `comments` (POST/GET/DELETE)
-- [ ] `alimentos` (com aprovação de admin)
-- [ ] `alimentacao` (registro diário)
-- [ ] `meal_plans` + `meal_plan_items`
-- [ ] Upload S3 com presigned URL
+- Senhas com **bcrypt** (12 rounds, hash, nunca plain)
+- **JWT** com access (1h) + refresh (7d)
+- Validação rigorosa com Pydantic
+- Mensagens genéricas no login (não vaza se user existe)
+- CORS configurável por env
+
+⚠️ **Em produção:**
+- Trocar `JWT_SECRET` por uma chave aleatória (32+ chars): `openssl rand -hex 32`
+- Mover tokens de `localStorage` pra cookies httpOnly
+- Adicionar rate limit nos endpoints de auth
+- Habilitar HTTPS obrigatório
 
 ## Testes
 
 ```bash
+cd backend
 pytest
 ```
 
-Cobre: registro, login (com email/username), erros 401/409/422, `/auth/me`, health.
+Cobre 14 cenários do fluxo de auth (registro, login, /me, health, erros 401/409/422).
 
-## Variáveis de ambiente
+---
 
-Veja `.env.example`. Em produção, **sempre** troque o `JWT_SECRET` por uma chave random forte (32+ chars).
-
-```bash
-# Gera uma chave aleatória
-openssl rand -hex 32
-```
+© 2026 Fitness Hub · Construído por [Pedro Almeida](https://github.com/0pedrohalmeida0)

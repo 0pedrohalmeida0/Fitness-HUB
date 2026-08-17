@@ -213,3 +213,12 @@ class ComentarioPublic(BaseModel):
     autor_username: str
     autor_nome: str | None = None
     autor_foto_url: str | None = None
+
+
+# ============================================================
+# Genérico
+# ============================================================
+class MessageResponse(BaseModel):
+    """Resposta genérica com mensagem."""
+
+    message: str

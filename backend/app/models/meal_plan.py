@@ -32,6 +32,10 @@ class MealPlan(Base, TimestampMixin):
     descricao: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Soft delete (consistência com outros models)
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
 
     __table_args__ = (
         CheckConstraint("length(nome) >= 1", name="ck_meal_plans_nome_nao_vazio"),
@@ -48,6 +52,7 @@ class MealPlanItem(Base, TimestampMixin):
     meal_plan_id: Mapped[int] = mapped_column(
         ForeignKey("meal_plans.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,  # queries "items do plano X" — sem índice, full scan
     )
     alimento_id: Mapped[int] = mapped_column(
         ForeignKey("alimentos.id", ondelete="RESTRICT"),

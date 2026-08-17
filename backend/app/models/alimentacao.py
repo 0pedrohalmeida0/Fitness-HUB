@@ -55,7 +55,7 @@ class Alimentacao(Base, TimestampMixin):
     refeicao: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
 
     # Soft delete
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", lazy="joined")

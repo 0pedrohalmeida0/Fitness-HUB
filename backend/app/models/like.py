@@ -27,6 +27,7 @@ class Like(Base, TimestampMixin):
     usuario_id: Mapped[int] = mapped_column(
         ForeignKey("usuarios.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,  # queries "posts curtidos pelo user X" — full table scan sem isso
     )
     post_media_id: Mapped[int] = mapped_column(
         ForeignKey("post_media.id", ondelete="CASCADE"),

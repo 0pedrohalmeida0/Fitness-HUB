@@ -9,40 +9,66 @@
    ============================================================ */
 
 const API_BASE_URL = 'http://localhost:8000';
+const DEFAULT_TIMEOUT_MS = 10_000;  // 10s
 
 /**
- * Wrapper sobre fetch que:
- * - Envia cookies automaticamente (credentials: 'include')
- * - Trata 401 fazendo refresh automático (se possível)
- * - Converte erros em exceptions com mensagem útil
+ * Wrapper sobre fetch com:
+ * - credentials include (envia cookies httpOnly)
+ * - timeout via AbortController
+ * - 401 → tenta refresh automático
+ * - converte erros em exceptions com mensagem útil
  */
 async function apiFetch(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
+  const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
+
+  // AbortController com timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const config = {
-    credentials: 'include',  // ENVIA cookies httpOnly automaticamente
+    credentials: 'include',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
     ...options,
   };
+  // signal/credentials/headers não podem ser sobrescritos pelo options cru
+  config.signal = controller.signal;
+  config.credentials = 'include';
 
-  // Se body é objeto, serializa
   if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
     config.body = JSON.stringify(config.body);
   }
 
-  let response = await fetch(url, config);
+  let response;
+  try {
+    response = await fetch(url, config);
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error(`Request timeout (${timeoutMs}ms): ${path}`);
+    }
+    throw e;
+  }
+  clearTimeout(timeoutId);
 
   // Token expirou — tenta refresh (apenas uma vez, mesmo com chamadas paralelas)
   if (response.status === 401 && !path.startsWith('/auth/')) {
     const refreshed = await ensureFreshToken();
     if (refreshed) {
-      // Refaz a requisição (cookies novos vão junto automaticamente)
-      response = await fetch(url, config);
+      // Refaz com novo controller/timeout
+      const ctrl2 = new AbortController();
+      const t2 = setTimeout(() => ctrl2.abort(), timeoutMs);
+      config.signal = ctrl2.signal;
+      try {
+        response = await fetch(url, config);
+      } finally {
+        clearTimeout(t2);
+      }
     } else {
-      // Refresh falhou — manda pro login
       window.location.href = 'login.html';
       return;
     }
@@ -63,9 +89,7 @@ async function apiFetch(path, options = {}) {
     throw err;
   }
 
-  // 204 No Content
   if (response.status === 204) return null;
-
   return response.json();
 }
 
@@ -84,12 +108,10 @@ async function ensureFreshToken() {
 
 async function tryRefreshToken() {
   try {
-    // O cookie fh_refresh_token é enviado automaticamente
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      // Envia body vazio — o refresh_token vem do cookie
       body: JSON.stringify({}),
     });
     return response.ok;
@@ -98,7 +120,6 @@ async function tryRefreshToken() {
   }
 }
 
-// Helpers de conveniência
 const api = {
   get: (path) => apiFetch(path),
   post: (path, body) => apiFetch(path, { method: 'POST', body }),
@@ -133,10 +154,7 @@ const alimentacaoApi = {
 const authApi = {
   me: () => api.get('/auth/me'),
   logout: async () => {
-    // Chama logout no back (revoga refresh + limpa cookies).
-    // O body é vazio — o refresh_token vem do cookie.
     try { await api.post('/auth/logout', {}); } catch (e) { /* ignore */ }
-    // Limpa qualquer storage legado (caso o user tenha tokens antigos)
     localStorage.removeItem('fh_access_token');
     localStorage.removeItem('fh_refresh_token');
     localStorage.removeItem('fh_token_type');

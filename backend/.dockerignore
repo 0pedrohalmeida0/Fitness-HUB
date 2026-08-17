@@ -1,0 +1,63 @@
+# ============================================================
+# Backend — .dockerignore
+# Evita copiar arquivos desnecessários ou sensíveis pra dentro da imagem.
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets / env
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# Tests
+tests/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker self-reference
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+docs/
+README.md

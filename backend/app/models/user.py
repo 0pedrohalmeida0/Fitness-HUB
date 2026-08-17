@@ -2,11 +2,15 @@
 Model do Usuário.
 
 Mapeia 1:1 com a tabela `usuarios` do schema v1.1.
+
+Inclui `deleted_at` (soft delete) para compliance com LGPD/GDPR
+(direito ao esquecimento) — exclusão lógica preserva integridade
+referencial sem perder histórico.
 """
 
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, String, Text
+from sqlalchemy import Boolean, Date, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -33,6 +37,12 @@ class User(Base, TimestampMixin):
     # Flags
     is_private: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Soft delete (LGPD / GDPR — direito ao esquecimento)
+    # Quando setado, queries devem filtrar deleted_at IS NULL
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
 
     def __repr__(self) -> str:
         return f"<User id={self.id} username={self.username!r}>"

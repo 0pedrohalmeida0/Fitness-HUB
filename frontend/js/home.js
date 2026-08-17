@@ -2,6 +2,40 @@
    Fitness Hub — Home (perfil)
    ============================================================ */
 
+// ============================================================
+// Helpers de DOM (anti-XSS)
+// ============================================================
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value == null) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'html') console.warn('[el] opção `html` removida por segurança.');
+    else if (key.startsWith('on') && typeof value === 'function') {
+      node.addEventListener(key.slice(2).toLowerCase(), value);
+    } else {
+      node.setAttribute(key, value);
+    }
+  }
+  for (const child of children) {
+    if (child == null) continue;
+    if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+    else node.appendChild(child);
+  }
+  return node;
+}
+
+function elUnsafe(htmlString) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = htmlString;
+  return tpl.content.cloneNode(true);
+}
+
+// Ícones SVG hardcoded (sem dados de usuário)
+const ICON_HEART = (filled) => `<svg viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+const ICON_COMMENT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+
 let profileData = null;
 
 async function loadProfile() {
@@ -119,13 +153,14 @@ function buildPostCard(p) {
     type: 'button',
     'data-like': p.id,
   });
-  likeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="${p.user_like_count > 0 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+  // SVG hardcoded (sem dados de usuário) — seguro usar elUnsafe
+  likeBtn.appendChild(elUnsafe(ICON_HEART(p.user_like_count > 0)));
   likeBtn.appendChild(document.createTextNode(` ${p.likes_count || ''}`));
   likeBtn.addEventListener('click', () => handleLike(p.id, likeBtn, p));
   actions.appendChild(likeBtn);
 
   const commentBtn = el('button', { class: 'post-action', type: 'button', 'data-comments': p.id });
-  commentBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  commentBtn.appendChild(elUnsafe(ICON_COMMENT));
   commentBtn.appendChild(document.createTextNode(` ${p.comments_count || ''}`));
   commentBtn.addEventListener('click', () => toggleComments(p.id, card));
   actions.appendChild(commentBtn);

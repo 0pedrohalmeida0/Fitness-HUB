@@ -16,13 +16,14 @@ from app.schemas.social import (
     FollowRequest,
     FollowResponse,
     LikesRanking,
+    MessageResponse,
     PostCreate,
     PostList,
     PostPublic,
     UserPublicFull,
     UserUpdateRequest,
 )
-from app.services import social_service
+from app.services import social_service, user_service
 from app.services.social_service import (
     CannotFollowSelfError,
     ComentarioAccessDeniedError,
@@ -83,16 +84,48 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
 ) -> UserPublicFull:
     """Edita campos do próprio perfil."""
+    from datetime import date as date_type
     update = data.model_dump(exclude_unset=True)
     for key, value in update.items():
         if key == "nascimento" and value:
-            from datetime import date as date_type
-            current_user.nascimento = date_type.fromisoformat(value)
+            try:
+                current_user.nascimento = date_type.fromisoformat(value)
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Data de nascimento inválida. Use formato YYYY-MM-DD.",
+                )
         else:
             setattr(current_user, key, value)
     await db.commit()
     await db.refresh(current_user)
     return await get_me(current_user, db)
+
+
+@router.delete(
+    "/users/me",
+    response_model=MessageResponse,
+    summary="Deletar minha conta (LGPD/GDPR)",
+)
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> MessageResponse:
+    """
+    Soft delete da própria conta (LGPD/GDPR — direito ao esquecimento).
+
+    - Marca `deleted_at` no user
+    - Revoga TODOS os refresh tokens ativos (força logout)
+    - Mantém histórico de posts/comments (integridade referencial)
+
+    Após esta operação, o email/username pode ser re-registrado
+    após um período de carência (futuro: 30 dias de lockout).
+    """
+    await user_service.soft_delete_user(db, current_user)
+    await db.commit()
+    return MessageResponse(
+        message="Conta desativada. Seus dados foram marcados para exclusão."
+    )
 
 
 @router.get(

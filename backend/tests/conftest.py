@@ -6,10 +6,13 @@ para os testes. Em produção, idealmente usaria um PostgreSQL
 de teste real.
 """
 
-# IMPORTANTE: seta env vars ANTES de importar app
+# IMPORTANTE: força env vars de teste (NÃO usa setdefault — se
+# DATABASE_URL do Neon de produção estiver setado, sobrescreve
+# e os testes vão recriar tabelas no banco real).
 import os
-os.environ.setdefault("JWT_SECRET", "test-secret-with-at-least-32-characters-long-12345")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ["JWT_SECRET"] = "test-secret-with-at-least-32-characters-long-12345"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["APP_ENV"] = "development"  # Settings só aceita development/staging/production
 
 import asyncio
 from typing import AsyncGenerator

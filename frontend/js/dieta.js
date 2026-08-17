@@ -18,7 +18,16 @@ const REFEICAO_ORDER = ['cafe_manha', 'lanche_manha', 'almoco', 'lanche_tarde', 
 // Helpers
 // ============================================================
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  /**
+   * Data de hoje no formato YYYY-MM-DD, em timezone LOCAL (não UTC).
+   * `toISOString()` retorna UTC — em Brasil (UTC-3) à meia-noite
+   * mostraria o dia anterior. Usamos componentes locais.
+   */
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function formatDate(iso) {
@@ -46,16 +55,26 @@ function setButtonLoading(btn, isLoading) {
 
 // ============================================================
 // Helpers de DOM seguro (anti-XSS)
+//
+// IMPORTANTE: este helper NÃO tem opção `html` (innerHTML). Use
+// sempre `text` para texto (escapa automaticamente) ou children
+// com elementos DOM. Se precisar mesmo de HTML cru (raro),
+// use `elUnsafe()` abaixo com consciência do risco de XSS.
 // ============================================================
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
+    if (value == null) continue;  // ignora null/undefined
     if (key === 'class') node.className = value;
-    else if (key === 'text') node.textContent = value;
-    else if (key === 'html') node.innerHTML = value;  // use com cuidado!
-    else if (key.startsWith('on') && typeof value === 'function') {
+    else if (key === 'text') node.textContent = value;  // seguro
+    else if (key === 'html') {
+      // Não permitido — log pra debug
+      console.warn(
+        '[el] opção `html` removida por segurança. Use `text` ou children.'
+      );
+    } else if (key.startsWith('on') && typeof value === 'function') {
       node.addEventListener(key.slice(2).toLowerCase(), value);
-    } else if (key.startsWith('data-')) {
+    } else if (key.startsWith('data-') || key === 'style' || key === 'href' || key === 'src') {
       node.setAttribute(key, value);
     } else {
       node.setAttribute(key, value);
@@ -67,6 +86,19 @@ function el(tag, attrs = {}, children = []) {
     else node.appendChild(child);
   }
   return node;
+}
+
+/**
+ * Helper para inserir HTML cru. EVITE usar com dados de usuário.
+ * Use apenas com strings hardcoded (ex: ícones SVG estáticos).
+ *
+ * @param {string} htmlString HTML seguro (não-sanitizado)
+ * @returns {DocumentFragment}
+ */
+function elUnsafe(htmlString) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = htmlString;
+  return tpl.content.cloneNode(true);
 }
 
 // ============================================================
@@ -348,7 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setButtonLoading(btn, true);
     try {
       await alimentacaoApi.create({
-        alimento_id: parseInt(alimentoId),
+        alimento_id: parseInt(alimentoId, 10),
         quantidade: parseFloat(document.getElementById('consumo-quantidade').value),
         refeicao: document.getElementById('consumo-refeicao').value,
         data: dataAtual,

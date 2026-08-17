@@ -1,24 +1,28 @@
 /* ============================================================
    Fitness Hub — API client
-   Helper genérico pra chamadas autenticadas à API
+   Autenticação via cookies httpOnly (defesa contra XSS).
+
+   O back seta `fh_access_token` (path /) e `fh_refresh_token`
+   (path /auth) no login/refresh. Como são httpOnly, o JS não
+   consegue ler — mas o browser envia automaticamente em requests
+   pro mesmo origin.
    ============================================================ */
 
 const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Wrapper sobre fetch que:
- * - Adiciona o token JWT automaticamente
+ * - Envia cookies automaticamente (credentials: 'include')
  * - Trata 401 fazendo refresh automático (se possível)
  * - Converte erros em exceptions com mensagem útil
  */
 async function apiFetch(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
-  const token = localStorage.getItem('fh_access_token');
 
   const config = {
+    credentials: 'include',  // ENVIA cookies httpOnly automaticamente
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
@@ -35,8 +39,7 @@ async function apiFetch(path, options = {}) {
   if (response.status === 401 && !path.startsWith('/auth/')) {
     const refreshed = await ensureFreshToken();
     if (refreshed) {
-      // Refaz a requisição com o token novo
-      config.headers['Authorization'] = `Bearer ${localStorage.getItem('fh_access_token')}`;
+      // Refaz a requisição (cookies novos vão junto automaticamente)
       response = await fetch(url, config);
     } else {
       // Refresh falhou — manda pro login
@@ -70,9 +73,7 @@ async function apiFetch(path, options = {}) {
 let _refreshInFlight = null;
 
 async function ensureFreshToken() {
-  // Se já tem um refresh rolando, espera ele terminar (evita stampede)
   if (_refreshInFlight) return _refreshInFlight;
-
   _refreshInFlight = tryRefreshToken();
   try {
     return await _refreshInFlight;
@@ -82,20 +83,16 @@ async function ensureFreshToken() {
 }
 
 async function tryRefreshToken() {
-  const refresh = localStorage.getItem('fh_refresh_token');
-  if (!refresh) return false;
-
   try {
+    // O cookie fh_refresh_token é enviado automaticamente
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refresh }),
+      // Envia body vazio — o refresh_token vem do cookie
+      body: JSON.stringify({}),
     });
-    if (!response.ok) return false;
-    const data = await response.json();
-    localStorage.setItem('fh_access_token', data.access_token);
-    localStorage.setItem('fh_refresh_token', data.refresh_token);
-    return true;
+    return response.ok;
   } catch (e) {
     return false;
   }
@@ -136,7 +133,10 @@ const alimentacaoApi = {
 const authApi = {
   me: () => api.get('/auth/me'),
   logout: async () => {
-    try { await api.post('/auth/logout'); } catch (e) { /* ignore */ }
+    // Chama logout no back (revoga refresh + limpa cookies).
+    // O body é vazio — o refresh_token vem do cookie.
+    try { await api.post('/auth/logout', {}); } catch (e) { /* ignore */ }
+    // Limpa qualquer storage legado (caso o user tenha tokens antigos)
     localStorage.removeItem('fh_access_token');
     localStorage.removeItem('fh_refresh_token');
     localStorage.removeItem('fh_token_type');

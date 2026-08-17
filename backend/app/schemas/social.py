@@ -8,6 +8,24 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+def _validate_safe_url(v: str | None) -> str | None:
+    """
+    Bloqueia URLs com esquemas perigosos (javascript:, data:text/html, vbscript:, file:).
+    Aceita http(s) e URLs vazias.
+    """
+    if v is None or v == "":
+        return v
+    lowered = v.strip().lower()
+    dangerous = (
+        "javascript:", "data:text/html", "vbscript:", "file:",
+        "data:application", "data:image/svg+xml",
+    )
+    for d in dangerous:
+        if lowered.startswith(d):
+            raise ValueError(f"Esquema de URL não permitido: {d}")
+    return v
+
+
 # ============================================================
 # Users
 # ============================================================
@@ -46,6 +64,11 @@ class UserUpdateRequest(BaseModel):
     genero: str | None = Field(default=None, max_length=20)
     nascimento: Optional[str] = None  # ISO date string
     foto_url_s3: str | None = Field(default=None, max_length=2048)
+
+    @field_validator("foto_url_s3")
+    @classmethod
+    def _safe_url(cls, v: str | None) -> str | None:
+        return _validate_safe_url(v)
 
 
 # ============================================================
@@ -87,6 +110,11 @@ class PostCreate(BaseModel):
         if not v:
             raise ValueError("Legenda não pode ser vazia.")
         return v
+
+    @field_validator("url_s3")
+    @classmethod
+    def _safe_url(cls, v: str) -> str:
+        return _validate_safe_url(v) or ""
 
 
 class PostPublic(BaseModel):

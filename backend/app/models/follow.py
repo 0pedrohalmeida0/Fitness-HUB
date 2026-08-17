@@ -56,7 +56,7 @@ class Follow(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("follower_id", "followed_id", name="uq_follows_unique"),
         CheckConstraint(
-            f"status IN {FollowStatus.ALL!r}".replace("(", "(").replace(")", ")"),
+            f"status IN ('pending', 'accepted', 'blocked')",
             name="ck_follows_status",
         ),
         CheckConstraint(

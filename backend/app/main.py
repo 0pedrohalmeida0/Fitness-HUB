@@ -9,14 +9,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 from app import __version__
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.routers import alimentacao, alimentos, auth, health, social
 
 
@@ -41,6 +41,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # HSTS — só em produção (HTTPS)
         if settings.app_env == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # Content Security Policy — defesa em profundidade contra XSS
+        # Frontend é HTML estático servido separado, então 'self' para assets
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "  # inline styles OK (CSS-in-JS não, mas usaremos)
+            "img-src 'self' https: data:; "  # data: pra avatares gerados; https pra S3 futuro
+            "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000; "  # API
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         return response
 
 
@@ -79,7 +91,6 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ----- Rate Limiting -----
-limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

@@ -46,11 +46,18 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency que entrega uma sessão por request."""
+    """
+    Dependency que entrega uma sessão por request.
+
+    IMPORTANTE: NÃO faz commit automático. Cada service/router é
+    responsável por chamar `await session.commit()` quando uma
+    operação precisa ser persistida. Isso evita o problema de um
+    endpoint validar input e retornar 400 DEPOIS de já ter feito
+    commit de um side-effect anterior.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise

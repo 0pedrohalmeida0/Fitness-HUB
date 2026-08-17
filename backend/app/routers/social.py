@@ -181,7 +181,7 @@ async def get_user_posts(
     posts, total = await social_service.list_user_posts(
         db, target.id, viewer_id, page, page_size
     )
-    items = [await social_service.build_post_public(db, p, viewer_id) for p in posts]
+    items = await social_service.build_posts_public_bulk(db, posts, viewer_id)
     return PostList(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -403,7 +403,7 @@ async def get_feed(
     posts, total = await social_service.get_feed(
         db, current_user.id, page, page_size
     )
-    items = [await social_service.build_post_public(db, p, current_user.id) for p in posts]
+    items = await social_service.build_posts_public_bulk(db, posts, current_user.id)
     return PostList(items=items, total=total, page=page, page_size=page_size)
 
 

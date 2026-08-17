@@ -20,7 +20,8 @@ alembic==1.14.0
 # Auth
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-jose[cryptography]==3.3.0
+pyjwt==2.10.1  # Substituiu python-jose (sem CVEs, mantido ativo)
+# argon2-cffi==23.1.0  # Opcional: para migrar de bcrypt pra Argon2id no futuro
 
 # CORS, rate limit, utils
 slowapi==0.1.9

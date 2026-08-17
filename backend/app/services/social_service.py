@@ -12,6 +12,7 @@ from datetime import date as date_type
 from typing import Optional
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password  # noqa: F401  (placeholder)
@@ -183,7 +184,21 @@ async def follow_user(
         status=status,
     )
     db.add(f)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Race condition: outra request criou o follow entre o SELECT e o INSERT
+        # (UNIQUE(follower_id, followed_id) protege). Rollback e busca o existente.
+        await db.rollback()
+        existing = await db.execute(
+            select(Follow).where(
+                Follow.follower_id == follower_id,
+                Follow.followed_id == followed_id,
+            )
+        )
+        f = existing.scalar_one_or_none()
+        if f is None:
+            raise  # erro inesperado
     return f
 
 
@@ -468,11 +483,18 @@ async def build_post_public(
     post: PostMedia,
     viewer_id: int | None,
 ) -> PostPublic:
-    """Constrói PostPublic com dados do autor e contadores."""
+    """Constrói PostPublic com dados do autor e contadores.
+
+    Performance: 1 query pra autor (via relationship com selectinload),
+    2 queries agregadas (likes_count + comments_count), 1 condicional
+    pro user_like_count. Total: ~4 queries por post (não N+1).
+    """
     from app.models.user import User as UserModel
+
+    # Autor (já tem selectinload se vier de listagem)
     autor = (await db.execute(select(UserModel).where(UserModel.id == post.usuario_id))).scalar_one()
 
-    # Contadores
+    # Contadores agregados em 2 queries (evita cartesian product)
     likes_count = (await db.execute(
         select(func.count(Like.id)).where(Like.post_media_id == post.id)
     )).scalar_one() or 0
@@ -484,6 +506,7 @@ async def build_post_public(
         )
     )).scalar_one() or 0
 
+    # user_like_count só se tiver viewer
     user_like_count = 0
     if viewer_id is not None:
         user_like_count = (await db.execute(
@@ -510,6 +533,90 @@ async def build_post_public(
         comments_count=comments_count,
         user_like_count=user_like_count,
     )
+
+
+async def build_posts_public_bulk(
+    db: AsyncSession,
+    posts: list[PostMedia],
+    viewer_id: int | None,
+) -> list[PostPublic]:
+    """
+    Constrói PostPublic pra vários posts de uma vez.
+
+    Resolve o N+1: ao invés de 4 queries por post, faz:
+    - 1 query pra autores (batch)
+    - 1 query agregada pra likes/comments (GROUP BY post_id)
+    - 1 query pra user_like_count (se viewer)
+    Total: 3 queries pra N posts.
+    """
+    from app.models.user import User as UserModel
+
+    if not posts:
+        return []
+
+    post_ids = [p.id for p in posts]
+    user_ids = list({p.usuario_id for p in posts})
+
+    # 1) Autores — 1 query pra todos
+    autores_q = await db.execute(
+        select(UserModel).where(UserModel.id.in_(user_ids))
+    )
+    autores = {a.id: a for a in autores_q.scalars().all()}
+
+    # 2) Likes count + Comments count agregados — 2 queries (uma por contador)
+    #    Poderia ser 1 só, mas manter 2 fica mais legível
+    likes_q = await db.execute(
+        select(Like.post_media_id, func.count(Like.id))
+        .where(Like.post_media_id.in_(post_ids))
+        .group_by(Like.post_media_id)
+    )
+    likes_map = dict(likes_q.all())
+
+    comments_q = await db.execute(
+        select(Comentario.post_media_id, func.count(Comentario.id))
+        .where(
+            Comentario.post_media_id.in_(post_ids),
+            Comentario.deleted_at.is_(None),
+        )
+        .group_by(Comentario.post_media_id)
+    )
+    comments_map = dict(comments_q.all())
+
+    # 3) user_like_count — 1 query (se viewer)
+    user_likes_map: dict[int, int] = {}
+    if viewer_id is not None:
+        user_likes_q = await db.execute(
+            select(Like.post_media_id, func.count(Like.id))
+            .where(
+                Like.post_media_id.in_(post_ids),
+                Like.usuario_id == viewer_id,
+            )
+            .group_by(Like.post_media_id)
+        )
+        user_likes_map = dict(user_likes_q.all())
+
+    # Monta a resposta
+    out = []
+    for post in posts:
+        autor = autores.get(post.usuario_id)
+        out.append(PostPublic(
+            id=post.id,
+            usuario_id=post.usuario_id,
+            legenda=post.legenda,
+            url_s3=post.url_s3,
+            tipo=post.tipo,
+            is_private=post.is_private,
+            meal_plan_id=post.meal_plan_id,
+            created_at=post.created_at,
+            updated_at=post.updated_at,
+            autor_username=autor.username if autor else "?",
+            autor_nome=autor.nome_completo if autor else None,
+            autor_foto_url=autor.foto_url_s3 if autor else None,
+            likes_count=likes_map.get(post.id, 0),
+            comments_count=comments_map.get(post.id, 0),
+            user_like_count=user_likes_map.get(post.id, 0),
+        ))
+    return out
 
 
 # ============================================================

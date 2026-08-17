@@ -47,16 +47,20 @@ function setButtonLoading(button, isLoading) {
 }
 
 /**
- * Salva os tokens no localStorage. Em produção, prefira cookies
- * httpOnly (mais seguro contra XSS). localStorage é mais simples
- * pro MVP.
+ * Os tokens são salvos em cookies httpOnly pelo BACKEND (login/refresh).
+ * O JS NÃO consegue ler httpOnly cookies — é justamente essa a defesa
+ * contra XSS (mesmo que um script malicioso rode, ele não consegue roubar
+ * os tokens).
+ *
+ * Esta função é mantida apenas pra limpar qualquer storage legado que
+ * possa ter ficado de versões antigas do código.
  */
-function saveTokens({ access_token, refresh_token, token_type }) {
-  localStorage.setItem('fh_access_token', access_token);
-  if (refresh_token) {
-    localStorage.setItem('fh_refresh_token', refresh_token);
-  }
-  localStorage.setItem('fh_token_type', token_type || 'bearer');
+function saveTokens() {
+  // No-op: tokens agora estão em cookies httpOnly, não em localStorage.
+  // Limpa qualquer resíduo de versões anteriores.
+  localStorage.removeItem('fh_access_token');
+  localStorage.removeItem('fh_refresh_token');
+  localStorage.removeItem('fh_token_type');
 }
 
 /**
@@ -141,6 +145,7 @@ function validatePassword(value) {
 async function apiLogin(emailOrUsername, password) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
+    credentials: 'include',  // recebe cookies httpOnly do back
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       email_or_username: emailOrUsername,
@@ -164,6 +169,7 @@ async function apiLogin(emailOrUsername, password) {
 async function apiRegister({ username, email, password }) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
+    credentials: 'include',  // recebe cookies httpOnly do back
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, email, password }),
   });

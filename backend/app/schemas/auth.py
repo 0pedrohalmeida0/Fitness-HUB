@@ -70,6 +70,12 @@ class RefreshRequest(BaseModel):
     refresh_token: str = Field(..., description="Refresh token recebido no login.")
 
 
+class LogoutRequest(BaseModel):
+    """POST /auth/logout"""
+
+    refresh_token: str = Field(..., description="Refresh token a ser revogado.")
+
+
 # ----- Responses -----
 class TokenResponse(BaseModel):
     """Resposta padrão de autenticação (login/register/refresh)."""

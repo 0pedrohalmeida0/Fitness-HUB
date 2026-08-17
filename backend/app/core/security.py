@@ -1,12 +1,17 @@
 """
 Segurança: hash de senha e JWT.
+
+Usa PyJWT (mais seguro e ativo) ao invés de python-jose (que tem CVEs
+e não é mais mantido).
 """
 
 import hashlib
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -55,7 +60,11 @@ def _create_token(
     token_type: str,
     extra_claims: dict[str, Any] | None = None,
 ) -> str:
-    """Cria um token JWT."""
+    """Cria um token JWT.
+
+    Inclui `jti` (UUID único) pra evitar colisão de hash em testes
+    rápidos e pra suportar revogação por JTI no futuro.
+    """
     if token_type not in ALLOWED_TOKEN_TYPES:
         raise ValueError(f"token_type inválido: {token_type}")
     now = datetime.now(timezone.utc)
@@ -64,9 +73,11 @@ def _create_token(
         "iat": now,
         "exp": now + expires_delta,
         "type": token_type,
+        "jti": uuid.uuid4().hex,
     }
     if extra_claims:
         payload.update(extra_claims)
+    # PyJWT aceita datetime, retorna str
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -97,7 +108,7 @@ def decode_token(token: str, expected_type: str | None = None) -> dict[str, Any]
         expected_type: se passado, valida que o claim `type` é este valor
 
     Raises:
-        JWTError se o token for inválido, expirado ou com tipo errado.
+        InvalidTokenError se o token for inválido, expirado ou com tipo errado.
     """
     try:
         payload = jwt.decode(
@@ -105,14 +116,18 @@ def decode_token(token: str, expected_type: str | None = None) -> dict[str, Any]
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
         )
-    except JWTError as e:
-        raise JWTError(f"Token inválido: {e}") from e
+    except InvalidTokenError as e:
+        raise InvalidTokenError(f"Token inválido: {e}") from e
 
     if expected_type is not None:
         token_type = payload.get("type")
         if token_type != expected_type:
-            raise JWTError(
+            raise InvalidTokenError(
                 f"Tipo de token inválido (esperado '{expected_type}', recebido '{token_type}')."
             )
 
     return payload
+
+
+# Alias pra compatibilidade com código antigo que importava JWTError
+JWTError = InvalidTokenError

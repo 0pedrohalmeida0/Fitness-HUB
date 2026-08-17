@@ -62,6 +62,10 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
 async def client(test_db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Cliente HTTP com DB de teste injetado."""
 
+    # Reset do rate limiter entre testes (mesmo IP em testes paralelos)
+    if hasattr(app.state, "limiter"):
+        app.state.limiter.reset()
+
     async def override_get_db():
         yield test_db
 

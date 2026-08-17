@@ -36,12 +36,16 @@ async def create_alimentacao(
     """
     Registra um consumo no log diário.
 
-    O trigger `check_alimento_approved` no banco garante que
-    só alimentos 'approved' podem entrar aqui. A gente valida
-    antes pra dar erro 400 amigável em vez de exception 500.
+    Defesa em camadas:
+    1. SELECT FOR UPDATE no alimento (lock pessimista)
+    2. Validação de status no app (erro 400 amigável)
+    3. Trigger `check_alimento_approved` no banco (última linha)
     """
-    # Valida o alimento aqui pra dar erro melhor que o trigger
-    result = await db.execute(select(Alimento).where(Alimento.id == alimento_id))
+    # SELECT FOR UPDATE: lock pessimista no alimento até o fim da transação
+    # evita race condition onde admin rejeita o alimento entre nosso check e o insert
+    result = await db.execute(
+        select(Alimento).where(Alimento.id == alimento_id).with_for_update()
+    )
     alimento = result.scalar_one_or_none()
 
     if alimento is None:

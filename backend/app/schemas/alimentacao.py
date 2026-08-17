@@ -2,16 +2,35 @@
 Schemas Pydantic da Alimentação (log diário).
 """
 
-from datetime import date as date_type, datetime
+from datetime import date as date_type, datetime, timedelta
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # Tipos literais
 RefeicaoLiteral = Literal[
     "cafe_manha", "lanche_manha", "almoco", "lanche_tarde", "jantar", "ceia"
 ]
+
+
+# Limites para data de consumo: não muito no passado, não no futuro
+MAX_PAST_DAYS = 365  # 1 ano
+MAX_FUTURE_DAYS = 1  # permite só hoje (evita dados com data errada)
+
+
+def _validate_date_range(v: date_type) -> date_type:
+    """Valida que a data não é absurda (passado distante ou futuro)."""
+    today = date_type.today()
+    if v > today + timedelta(days=MAX_FUTURE_DAYS):
+        raise ValueError(
+            f"Data não pode ser mais de {MAX_FUTURE_DAYS} dia(s) no futuro."
+        )
+    if v < today - timedelta(days=MAX_PAST_DAYS):
+        raise ValueError(
+            f"Data não pode ser mais de {MAX_PAST_DAYS} dias no passado."
+        )
+    return v
 
 
 # ----- Requests -----
@@ -23,6 +42,11 @@ class AlimentacaoCreate(BaseModel):
     refeicao: RefeicaoLiteral
     data: date_type = Field(..., description="Data do consumo (YYYY-MM-DD)")
 
+    @field_validator("data")
+    @classmethod
+    def _check_date(cls, v: date_type) -> date_type:
+        return _validate_date_range(v)
+
 
 class AlimentacaoUpdate(BaseModel):
     """PATCH /alimentacao/{id} - atualizar registro."""
@@ -30,6 +54,13 @@ class AlimentacaoUpdate(BaseModel):
     quantidade: float | None = Field(default=None, gt=0, le=10000)
     refeicao: RefeicaoLiteral | None = None
     data: date_type | None = None
+
+    @field_validator("data")
+    @classmethod
+    def _check_date(cls, v: date_type | None) -> date_type | None:
+        if v is not None:
+            return _validate_date_range(v)
+        return v
 
 
 # ----- Responses -----

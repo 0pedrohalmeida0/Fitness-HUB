@@ -27,8 +27,8 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
-    UserPublic,
 )
+from app.schemas.user import UserPublic
 from app.services import user_service
 from app.services.user_service import (
     InvalidCredentialsError,
@@ -124,17 +124,11 @@ async def refresh(
     Recebe um refresh token válido e retorna um novo par de tokens.
     """
     try:
-        payload = decode_token(data.refresh_token)
+        payload = decode_token(data.refresh_token, expected_type="refresh")
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Refresh token inválido: {e}",
-        )
-
-    if payload.get("type") != "refresh":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token não é um refresh token.",
         )
 
     user_id = payload.get("sub")

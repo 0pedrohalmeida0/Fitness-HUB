@@ -31,9 +31,9 @@ async function apiFetch(path, options = {}) {
 
   let response = await fetch(url, config);
 
-  // Token expirou — tenta refresh
+  // Token expirou — tenta refresh (apenas uma vez, mesmo com chamadas paralelas)
   if (response.status === 401 && !path.startsWith('/auth/')) {
-    const refreshed = await tryRefreshToken();
+    const refreshed = await ensureFreshToken();
     if (refreshed) {
       // Refaz a requisição com o token novo
       config.headers['Authorization'] = `Bearer ${localStorage.getItem('fh_access_token')}`;
@@ -64,6 +64,21 @@ async function apiFetch(path, options = {}) {
   if (response.status === 204) return null;
 
   return response.json();
+}
+
+// Variável de controle: se já tem refresh em andamento, outras chamadas aguardam
+let _refreshInFlight = null;
+
+async function ensureFreshToken() {
+  // Se já tem um refresh rolando, espera ele terminar (evita stampede)
+  if (_refreshInFlight) return _refreshInFlight;
+
+  _refreshInFlight = tryRefreshToken();
+  try {
+    return await _refreshInFlight;
+  } finally {
+    _refreshInFlight = null;
+  }
 }
 
 async function tryRefreshToken() {

@@ -5,7 +5,6 @@ Pydantic v2 com validação rigorosa.
 """
 
 import re
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -87,20 +86,3 @@ class MessageResponse(BaseModel):
     """Resposta genérica com mensagem."""
 
     message: str
-
-
-# ----- Modelo interno compartilhado -----
-class UserPublic(BaseModel):
-    """Dados públicos do usuário (sem senha)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    username: str
-    email: EmailStr
-    nome_completo: str | None = None
-    bio: str | None = None
-    foto_url_s3: str | None = None
-    is_private: bool
-    is_admin: bool
-    created_at: datetime | None = None

@@ -4,7 +4,7 @@ Lógica de negócio do usuário.
 Centraliza regras de criação, autenticação e consulta.
 """
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,15 +66,28 @@ async def authenticate(db: AsyncSession, data: LoginRequest) -> User:
 
     Raises:
         InvalidCredentialsError: se as credenciais forem inválidas.
+
+    Mitigações de segurança:
+    - Email é comparado case-insensitive
+    - Username mantém case (convenção @pedro != @PEDRO)
+    - Sempre chama verify_password (mesmo com user inexistente) pra evitar timing attack
     """
-    # Busca por email OU username
+    lookup = data.email_or_username.lower()
     stmt = select(User).where(
-        or_(User.email == data.email_or_username, User.username == data.email_or_username)
+        or_(
+            func.lower(User.email) == lookup,
+            User.username == data.email_or_username,
+        )
     )
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(data.password, user.senha_hash):
+    if user is None:
+        # Timing attack mitigation: hash dummy pra manter tempo similar
+        verify_password(data.password, "$2b$12$" + "x" * 53)
+        raise InvalidCredentialsError("Email/usuário ou senha incorretos.")
+
+    if not verify_password(data.password, user.senha_hash):
         raise InvalidCredentialsError("Email/usuário ou senha incorretos.")
 
     return user

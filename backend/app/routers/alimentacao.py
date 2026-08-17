@@ -10,15 +10,18 @@ DELETE /alimentacao/{id}         - Remove (soft delete)
 from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.models.alimento import Alimento
 from app.models.user import User
 from app.schemas.alimentacao import (
     AlimentacaoComAlimento,
     AlimentacaoCreate,
     ResumoDiario,
+    _validate_date_range,
 )
 from app.services import alimentacao_service
 from app.services.alimentacao_service import (
@@ -27,6 +30,18 @@ from app.services.alimentacao_service import (
 )
 
 router = APIRouter(prefix="/alimentacao", tags=["alimentacao"])
+
+
+def _parse_data_or_400(data_str: str) -> date_type:
+    """Converte YYYY-MM-DD validado, ou levanta 400."""
+    try:
+        d = date_type.fromisoformat(data_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Data inválida. Use YYYY-MM-DD.")
+    try:
+        return _validate_date_range(d)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post(
@@ -61,11 +76,8 @@ async def create_alimentacao(
         raise HTTPException(status_code=400, detail=str(e))
 
     await db.commit()
-    await db.refresh(reg)
 
-    # Retorna com dados do alimento embutidos
-    from app.models.alimento import Alimento
-    from sqlalchemy import select
+    # Re-busca com o alimento embutido (mesma transação, lock ainda válido)
     al = (await db.execute(select(Alimento).where(Alimento.id == reg.alimento_id))).scalar_one()
 
     return AlimentacaoComAlimento(
@@ -93,13 +105,14 @@ async def create_alimentacao(
     summary="Lista registros de um dia",
 )
 async def list_alimentacao_dia(
-    data: date_type = Query(..., description="Data no formato YYYY-MM-DD"),
+    data: str = Query(..., description="Data no formato YYYY-MM-DD"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[AlimentacaoComAlimento]:
     """Retorna todos os registros do user pro dia informado."""
+    data_parsed = _parse_data_or_400(data)
     return await alimentacao_service.list_alimentacao_dia(
-        db, current_user.id, data
+        db, current_user.id, data_parsed
     )
 
 
@@ -109,14 +122,15 @@ async def list_alimentacao_dia(
     summary="Resumo nutricional do dia",
 )
 async def get_resumo_dia(
-    data: date_type = Query(..., description="Data no formato YYYY-MM-DD"),
+    data: str = Query(..., description="Data no formato YYYY-MM-DD"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ResumoDiario:
     """
     Retorna os totais do dia (kcal, macros) e o breakdown por refeição.
     """
-    return await alimentacao_service.get_resumo_dia(db, current_user.id, data)
+    data_parsed = _parse_data_or_400(data)
+    return await alimentacao_service.get_resumo_dia(db, current_user.id, data_parsed)
 
 
 @router.delete(

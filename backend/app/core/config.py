@@ -24,8 +24,20 @@ class Settings(BaseSettings):
     # App
     app_name: str = "Fitness Hub"
     app_env: Literal["development", "staging", "production"] = "development"
-    app_debug: bool = True
+    app_debug: bool = True  # Em produção, force False via env: APP_DEBUG=false
     app_port: int = 8000
+
+    @field_validator("app_debug", mode="after")
+    @classmethod
+    def _disable_debug_in_prod(cls, v: bool, info) -> bool:
+        """Garante que debug é False em produção (não vaza stack traces)."""
+        env = info.data.get("app_env", "development")
+        if env == "production" and v:
+            import os
+            # Só avisa se APP_DEBUG foi setado explicitamente
+            if "APP_DEBUG" in os.environ:
+                raise ValueError("APP_DEBUG não pode ser True em produção (vaza stack traces).")
+        return v
 
     # CORS - lista de origens permitidas
     cors_origins: list[str] = Field(

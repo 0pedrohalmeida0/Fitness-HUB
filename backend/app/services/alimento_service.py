@@ -62,9 +62,13 @@ async def list_approved(
     )
 
     if search:
-        term = f"%{search.lower()}%"
-        stmt = stmt.where(func.lower(Alimento.nome).like(term))
-        count_stmt = count_stmt.where(func.lower(Alimento.nome).like(term))
+        # Escapa % e _ pra não serem interpretados como wildcards do LIKE
+        safe = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        term = f"%{safe.lower()}%"
+        stmt = stmt.where(func.lower(Alimento.nome).like(term, escape="\\"))
+        count_stmt = count_stmt.where(
+            func.lower(Alimento.nome).like(term, escape="\\")
+        )
 
     total = (await db.execute(count_stmt)).scalar_one()
     offset = (page - 1) * page_size

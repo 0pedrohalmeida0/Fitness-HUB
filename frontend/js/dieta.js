@@ -45,6 +45,31 @@ function setButtonLoading(btn, isLoading) {
 }
 
 // ============================================================
+// Helpers de DOM seguro (anti-XSS)
+// ============================================================
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'html') node.innerHTML = value;  // use com cuidado!
+    else if (key.startsWith('on') && typeof value === 'function') {
+      node.addEventListener(key.slice(2).toLowerCase(), value);
+    } else if (key.startsWith('data-')) {
+      node.setAttribute(key, value);
+    } else {
+      node.setAttribute(key, value);
+    }
+  }
+  for (const child of children) {
+    if (child == null) continue;
+    if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+    else node.appendChild(child);
+  }
+  return node;
+}
+
+// ============================================================
 // Auth check
 // ============================================================
 async function checkAuth() {
@@ -86,12 +111,16 @@ async function carregarDiario(data) {
   const titulo = document.getElementById('diario-titulo');
   titulo.textContent = `Registros de ${formatDate(data)}`;
 
+  // Limpa
+  lista.replaceChildren();
+
   try {
     const registros = await alimentacaoApi.list(data);
     if (registros.length === 0) {
-      lista.innerHTML = '<p class="empty-state">Nenhum registro nesse dia. Adicione seu primeiro consumo!</p>';
+      lista.appendChild(el('p', { class: 'empty-state', text: 'Nenhum registro nesse dia. Adicione seu primeiro consumo!' }));
       return;
     }
+
     // Agrupa por refeição
     const grupos = {};
     REFEICAO_ORDER.forEach(r => grupos[r] = []);
@@ -99,48 +128,54 @@ async function carregarDiario(data) {
       if (grupos[r.refeicao]) grupos[r.refeicao].push(r);
     });
 
-    lista.innerHTML = REFEICAO_ORDER
-      .filter(r => grupos[r].length > 0)
-      .map(r => `
-        <div class="registro-group">
-          <div class="registro-group-title">${REFEICAO_LABEL[r]}</div>
-          ${grupos[r].map(reg => {
-            const fator = reg.quantidade / reg.alimento_porcao_base_g;
-            const kcal = reg.alimento_calorias * fator;
-            return `
-              <div class="registro">
-                <div class="registro-refeicao">${REFEICAO_LABEL[r].substring(0,3).toUpperCase()}</div>
-                <div class="registro-info">
-                  <h3>${reg.alimento_nome}</h3>
-                  <p><b>${reg.quantidade}g</b> · ${Math.round(kcal)} kcal · ${(reg.alimento_protein * fator).toFixed(1)}g proteína</p>
-                </div>
-                <button class="registro-delete" data-delete-id="${reg.id}" aria-label="Remover">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `).join('');
+    REFEICAO_ORDER.filter(r => grupos[r].length > 0).forEach(r => {
+      const groupEl = el('div', { class: 'registro-group' });
+      groupEl.appendChild(el('div', { class: 'registro-group-title', text: REFEICAO_LABEL[r] }));
 
-    // Adiciona listeners nos botões de delete
-    lista.querySelectorAll('[data-delete-id]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.currentTarget.getAttribute('data-delete-id');
-        if (!confirm('Remover esse registro?')) return;
-        try {
-          await alimentacaoApi.delete(id);
-          await carregarDiario(data);
-          await carregarResumo(data);
-        } catch (err) {
-          alert('Erro: ' + err.message);
-        }
+      grupos[r].forEach(reg => {
+        const fator = reg.alimento_porcao_base_g > 0 ? reg.quantidade / reg.alimento_porcao_base_g : 0;
+        const kcal = reg.alimento_calorias * fator;
+
+        const registroEl = el('div', { class: 'registro' });
+        registroEl.appendChild(el('div', {
+          class: 'registro-refeicao',
+          text: REFEICAO_LABEL[r].substring(0, 3).toUpperCase(),
+        }));
+
+        const infoEl = el('div', { class: 'registro-info' });
+        infoEl.appendChild(el('h3', { text: reg.alimento_nome }));
+        const pEl = el('p');
+        pEl.appendChild(el('b', { text: `${reg.quantidade}g` }));
+        pEl.appendChild(document.createTextNode(` · ${Math.round(kcal)} kcal · `));
+        pEl.appendChild(el('b', { text: `${(reg.alimento_protein * fator).toFixed(1)}g` }));
+        pEl.appendChild(document.createTextNode(' proteína'));
+        infoEl.appendChild(pEl);
+        registroEl.appendChild(infoEl);
+
+        const deleteBtn = el('button', {
+          class: 'registro-delete',
+          'data-delete-id': reg.id,
+          'aria-label': 'Remover',
+        });
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+        deleteBtn.addEventListener('click', async () => {
+          if (!confirm('Remover esse registro?')) return;
+          try {
+            await alimentacaoApi.delete(reg.id);
+            await carregarDiario(data);
+            await carregarResumo(data);
+          } catch (err) {
+            alert('Erro: ' + err.message);
+          }
+        });
+        registroEl.appendChild(deleteBtn);
+        groupEl.appendChild(registroEl);
       });
+
+      lista.appendChild(groupEl);
     });
   } catch (e) {
-    lista.innerHTML = `<p class="empty-state">Erro ao carregar: ${e.message}</p>`;
+    lista.appendChild(el('p', { class: 'empty-state', text: `Erro ao carregar: ${e.message}` }));
   }
 }
 
@@ -151,26 +186,40 @@ let catalogoSearchTimeout;
 
 async function carregarCatalogo(search = '') {
   const lista = document.getElementById('catalogo-lista');
+  lista.replaceChildren();
   try {
     const data = await alimentosApi.list(search);
     if (data.items.length === 0) {
-      lista.innerHTML = '<p class="empty-state">Nenhum alimento encontrado.</p>';
+      lista.appendChild(el('p', { class: 'empty-state', text: 'Nenhum alimento encontrado.' }));
       return;
     }
-    lista.innerHTML = data.items.map(al => `
-      <div class="alimento-card">
-        <h3>${al.nome}</h3>
-        <div class="alimento-macros">
-          <span><b>${al.calorias}</b> kcal</span>
-          <span><b>${al.protein}g</b> P</span>
-          <span><b>${al.carbo}g</b> C</span>
-          <span><b>${al.fibras}g</b> F</span>
-        </div>
-        <p style="font-size:11px;color:#A1A1AA;margin-top:6px;">por ${al.porcao_base_g}g</p>
-      </div>
-    `).join('');
+    data.items.forEach(al => {
+      const cardEl = el('div', { class: 'alimento-card' });
+      cardEl.appendChild(el('h3', { text: al.nome }));
+
+      const macrosEl = el('div', { class: 'alimento-macros' });
+      [
+        `${al.calorias} kcal`,
+        `${al.protein}g P`,
+        `${al.carbo}g C`,
+        `${al.fibras}g F`,
+      ].forEach(text => {
+        const span = el('span');
+        const parts = text.split(' ');
+        span.appendChild(el('b', { text: parts[0] }));
+        span.appendChild(document.createTextNode(' ' + parts[1]));
+        macrosEl.appendChild(span);
+      });
+      cardEl.appendChild(macrosEl);
+
+      const porcaoEl = el('p', { style: 'font-size:11px;color:#A1A1AA;margin-top:6px;' });
+      porcaoEl.appendChild(document.createTextNode(`por ${al.porcao_base_g}g`));
+      cardEl.appendChild(porcaoEl);
+
+      lista.appendChild(cardEl);
+    });
   } catch (e) {
-    lista.innerHTML = `<p class="empty-state">Erro: ${e.message}</p>`;
+    lista.appendChild(el('p', { class: 'empty-state', text: `Erro: ${e.message}` }));
   }
 }
 
@@ -195,6 +244,7 @@ function fecharModal() {
 let consumoSearchTimeout;
 async function buscarAlimentosParaConsumo(term) {
   const sugestoesEl = document.getElementById('consumo-sugestoes');
+  sugestoesEl.replaceChildren();
   if (term.length < 2) {
     sugestoesEl.hidden = true;
     return;
@@ -202,29 +252,32 @@ async function buscarAlimentosParaConsumo(term) {
   try {
     const data = await alimentosApi.list(term);
     if (data.items.length === 0) {
-      sugestoesEl.innerHTML = '<div class="sugestao-item">Nenhum resultado</div>';
+      const itemEl = el('div', { class: 'sugestao-item', text: 'Nenhum resultado' });
+      sugestoesEl.appendChild(itemEl);
       sugestoesEl.hidden = false;
       return;
     }
-    sugestoesEl.innerHTML = data.items.slice(0, 8).map(al => `
-      <div class="sugestao-item" data-id="${al.id}" data-nome="${al.nome}">
-        <strong>${al.nome}</strong> · <span style="color:#71717A;">${al.calorias} kcal / ${al.porcao_base_g}g</span>
-      </div>
-    `).join('');
-    sugestoesEl.hidden = false;
+    data.items.slice(0, 8).forEach(al => {
+      const itemEl = el('div', {
+        class: 'sugestao-item',
+        'data-id': al.id,
+        'data-nome': al.nome,
+      });
+      itemEl.appendChild(el('strong', { text: al.nome }));
+      itemEl.appendChild(document.createTextNode(` · ${al.calorias} kcal / ${al.porcao_base_g}g`));
 
-    // Listener nos itens
-    sugestoesEl.querySelectorAll('.sugestao-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const id = item.getAttribute('data-id');
-        const nome = item.getAttribute('data-nome');
+      itemEl.addEventListener('click', () => {
+        const id = itemEl.getAttribute('data-id');
+        const nome = itemEl.getAttribute('data-nome');
         document.getElementById('consumo-alimento-id').value = id;
         document.getElementById('consumo-alimento-nome').textContent = `✓ ${nome}`;
         document.getElementById('consumo-alimento-nome').hidden = false;
         document.getElementById('consumo-busca').value = nome;
         sugestoesEl.hidden = true;
       });
+      sugestoesEl.appendChild(itemEl);
     });
+    sugestoesEl.hidden = false;
   } catch (e) {
     console.error(e);
   }

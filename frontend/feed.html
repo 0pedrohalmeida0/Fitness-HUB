@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed — Fitness Hub</title>
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/social.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="home.html" class="topbar-logo">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/>
+          <circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/>
+          <circle cx="12" cy="12" r="2.2"/>
+          <line x1="6" y1="6" x2="12" y2="12"/><line x1="18" y1="6" x2="12" y2="12"/>
+          <line x1="6" y1="18" x2="12" y2="12"/><line x1="18" y1="18" x2="12" y2="12"/>
+        </svg>
+      </div>
+      <span class="name">Fitness Hub</span>
+    </a>
+    <nav class="topbar-links">
+      <a href="#" id="logout-link">Sair</a>
+    </nav>
+  </header>
+
+  <nav class="tabs-nav" aria-label="Navegação principal">
+    <a href="home.html" data-tab="home">Home</a>
+    <a href="feed.html" class="active" data-tab="feed">Feed</a>
+    <a href="dieta.html" data-tab="dieta">Dieta</a>
+  </nav>
+
+  <main class="social-main">
+    <!-- Criar post -->
+    <div class="create-post">
+      <textarea id="post-legenda" placeholder="No que você está pensando?" maxlength="5000"></textarea>
+      <div class="actions">
+        <label class="checkbox">
+          <input type="checkbox" id="post-private">
+          <span class="box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+          </span>
+          <span>Privado (apenas seguidores)</span>
+        </label>
+        <button id="btn-postar" class="btn-save">Postar</button>
+      </div>
+    </div>
+
+    <!-- Posts -->
+    <div id="feed-container">
+      <p class="feed-empty">Carregando...</p>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/feed.js"></script>
+</body>
+</html>

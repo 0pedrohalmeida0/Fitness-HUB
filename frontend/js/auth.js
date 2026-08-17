@@ -10,7 +10,7 @@
 const API_BASE_URL = 'http://localhost:8000';
 
 // Onde redirecionar depois de logar/cadastrar com sucesso.
-const REDIRECT_AFTER_AUTH = 'dieta.html';
+const REDIRECT_AFTER_AUTH = 'home.html';
 
 // ============================================================
 // Helpers

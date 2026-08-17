@@ -17,7 +17,7 @@ from starlette.requests import Request as StarletteRequest
 
 from app import __version__
 from app.core.config import settings
-from app.routers import alimentacao, alimentos, auth, health
+from app.routers import alimentacao, alimentos, auth, health, social
 
 
 # ============================================================
@@ -89,6 +89,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(alimentos.router)
 app.include_router(alimentacao.router)
+app.include_router(social.router)
 
 
 # ----- Root -----
